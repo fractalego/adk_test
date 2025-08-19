@@ -5,7 +5,7 @@ from src.retriever import Retriever
 def create_retrieval_tool(data_folder: str) -> FunctionTool:
     retriever = Retriever(data_folder)
     
-    def retrieve_chunks(query: str, top_k: int = 8) -> str:
+    def retrieve_chunks(query: str, top_k: int) -> str:
         """Retrieve the most relevant document chunks for a given query"""
         results = retriever.get_chunks(query, top_k=top_k)
         

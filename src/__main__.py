@@ -69,14 +69,16 @@ async def main():
         session_id=_session_id,
         new_message=content,
     ):
-        output_text = event.content.parts[0].text
-        print(output_text, end='', flush=True)
-        
-        if "MODIFY_QUERY:" in output_text:
-            final_query = output_text.split("MODIFY_QUERY:")[1].strip()
-        elif "APPROVED:" in output_text:
-            final_output = output_text.split("APPROVED:")[1].strip()
-            
+        if event.content and event.content.parts:
+            output_text = event.content.parts[0].text
+            if output_text:
+                print(output_text, end='', flush=True)
+                
+                if "MODIFY_QUERY:" in output_text:
+                    final_query = output_text.split("MODIFY_QUERY:")[1].strip()
+                elif "APPROVED:" in output_text:
+                    final_output = output_text.split("APPROVED:")[1].strip()
+                    
         if event.is_final_response():
             break
     
