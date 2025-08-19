@@ -2,9 +2,8 @@ import asyncio
 import os
 import json
 
-from google.adk.agents import LlmAgent, SequentialAgent
+from google.adk.agents import LlmAgent
 from google.adk.models.lite_llm import LiteLlm
-from google.genai.types import Content, Part
 
 from src.iterations import iterate_agents
 from src.prompts.prompts import (
@@ -24,10 +23,12 @@ _session_id = "test_session"
 
 
 async def main():
-    retrieval_tool = create_retrieval_tool("data/")
+    retrieval_tool = create_retrieval_tool(
+        data_folder=os.path.join(os.path.dirname(__file__), "../data")
+    )
 
     retrieval_agent = LlmAgent(
-        model=LiteLlm(model="openai/gpt-4o", api_key=os.getenv("OPENAI_API_KEY")),
+        model=LiteLlm(model="openai/gpt-4o-mini", api_key=os.getenv("OPENAI_API_KEY")),
         name="retrieval_agent",
         instruction=retrieval_agent_instructions,
         tools=[retrieval_tool],

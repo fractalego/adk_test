@@ -15,7 +15,7 @@ class Retriever:
 
     def _load_and_chunk_pdfs(self):
         pdf_files = list(self.folder_path.glob("*.pdf"))
-
+        print(f"Found {len(pdf_files)} PDF files in {self.folder_path}")
         for pdf_file in pdf_files:
             try:
                 doc = fitz.open(pdf_file)

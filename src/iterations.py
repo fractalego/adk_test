@@ -1,7 +1,5 @@
 from google.adk.agents import SequentialAgent, LlmAgent
 from google.genai.types import Part, Content
-from sqlalchemy.sql.functions import current_user
-
 from src.runner_factory import RunnerFactory
 
 
@@ -45,7 +43,11 @@ async def iterate_agents(
         runner = await runner_factory.get_runner(agent=sequential_agent)
         part = Part(text=current_query)
         content = Content(role="user", parts=[part])
+        
         iteration_output = ""
+        current_agent = None
+        agent_outputs = {"retrieval": "", "generation": "", "refiner": ""}
+        
         async for event in runner.run_async(
             user_id=user_id,
             session_id=session_id,
@@ -54,11 +56,29 @@ async def iterate_agents(
             if event.content and event.content.parts:
                 output_text = event.content.parts[0].text
                 if output_text:
+                    # Detect which agent is currently responding
+                    if hasattr(event, 'agent_name'):
+                        current_agent = event.agent_name
+                        print(f"\n--- {current_agent.upper()} AGENT OUTPUT ---")
+                        current_agent = "generation"
+                    
                     print(output_text, end="", flush=True)
                     iteration_output += output_text
+                    
+                    # Store agent-specific outputs
+                    if current_agent in agent_outputs:
+                        agent_outputs[current_agent] += output_text
 
             if event.is_final_response():
                 break
+        
+        # Print summary of each agent's contribution
+        print(f"\n\n--- ITERATION {iteration + 1} SUMMARY ---")
+        for agent_name, output in agent_outputs.items():
+            if output.strip():
+                print(f"{agent_name.upper()} OUTPUT LENGTH: {len(output)} chars")
+                print(f"{agent_name.upper()} OUTPUT PREVIEW: {output[:100]}...")
+        print("--- END SUMMARY ---")
 
         if "APPROVED:" in iteration_output:
             final_output = iteration_output.split("APPROVED:")[1].strip()

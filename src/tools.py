@@ -15,6 +15,7 @@ def create_retrieval_tool(data_folder: str) -> FunctionTool:
                 f"Chunk {i} (ID: {chunk_id}, Score: {score:.3f}):\n{chunk}\n"
             )
 
+        print(f"Retrieved {len(results)} chunks for query: '{query}'")
         return "\n".join(formatted_chunks)
 
     return FunctionTool(retrieve_chunks)
