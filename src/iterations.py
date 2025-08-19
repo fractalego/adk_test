@@ -1,14 +1,13 @@
-from google.adk.agents import SequentialAgent, LlmAgent
 from google.genai.types import Part, Content
+from src.agents_factory import AgentsFactory
 from src.runner_factory import RunnerFactory
-
+from src.retriever import Retriever
 
 async def iterate_agents(
     initial_query: str,
     max_iterations: int,
-    retrieval_agent: LlmAgent,
-    generation_agent: LlmAgent,
-    refiner_agent: LlmAgent,
+    guidance_criteria: list[str],
+    retriever: Retriever,
     runner_factory: RunnerFactory,
     user_id: str,
     session_id: str,
@@ -17,81 +16,73 @@ async def iterate_agents(
     Iteratively run agents to refine a query and generate output.
 
     Args:
-        current_query: The initial query to start with.
-        max_iterations: Maximum number of iterations to run.
-        retrieval_agent: Agent responsible for retrieving relevant data.
-        generation_agent: Agent responsible for generating content.
-        refiner_agent: Agent responsible for refining the query.
-        runner_factory: Factory to create runners for executing agents.
-        user_id: User identifier for the session.
-        session_id: Session identifier for the conversation.
-
+        initial_query (str): The initial query to start with.
+        max_iterations (int): The maximum number of iterations to run.
+        guidance_criteria (list[str]): List of criteria to guide the agents.
+        retriever (Retriever): The retriever instance to fetch document chunks.
+        runner_factory (RunnerFactory): The runner factory instance to use.
+        user_id (str): The user ID for the session.
+        session_id (str): The session ID for the session.
     Returns:
-        A dictionary containing the best query and the final output text.
+        dict: A dictionary containing the best query and the final output text.
     """
 
     current_query = initial_query
-    final_output = ""
-
     for iteration in range(max_iterations):
         print(f"\n=== Iteration {iteration + 1}: Query = '{current_query}' ===")
+        
+        print("--- RETRIEVING CHUNKS ---")
+        results = retriever.get_chunks(current_query, top_k=8)
+        print(f"Retrieved {len(results)} chunks for query: '{current_query}'")
+        formatted_chunks = _format_chunks(results)
 
-        sequential_agent = SequentialAgent(
-            sub_agents=[retrieval_agent, generation_agent, refiner_agent],
-            name=f"iteration_{iteration + 1}",
+        query_with_chunks = f"{current_query}\n\nRETRIEVED CHUNKS:\n{formatted_chunks}"
+
+        sequential_agent = AgentsFactory.create_agents(
+            iteration=iteration,
+            guidance_criteria=guidance_criteria,
         )
         runner = await runner_factory.get_runner(agent=sequential_agent)
-        part = Part(text=current_query)
+        part = Part(text=query_with_chunks)
         content = Content(role="user", parts=[part])
         
         iteration_output = ""
-        current_agent = None
-        agent_outputs = {"retrieval": "", "generation": "", "refiner": ""}
-        
+        best_output = ""
         async for event in runner.run_async(
             user_id=user_id,
             session_id=session_id,
             new_message=content,
         ):
-            if event.content and event.content.parts:
-                output_text = event.content.parts[0].text
-                if output_text:
-                    # Detect which agent is currently responding
-                    if hasattr(event, 'agent_name'):
-                        current_agent = event.agent_name
-                        print(f"\n--- {current_agent.upper()} AGENT OUTPUT ---")
-                        current_agent = "generation"
-                    
-                    print(output_text, end="", flush=True)
-                    iteration_output += output_text
-                    
-                    # Store agent-specific outputs
-                    if current_agent in agent_outputs:
-                        agent_outputs[current_agent] += output_text
+            best_query = current_query
+            output_text = event.content.parts[0].text
 
-            if event.is_final_response():
+            if "APPROVED!" in output_text:
+                print(f"\n=== APPROVED after {iteration + 1} iterations ===")
                 break
-        
-        # Print summary of each agent's contribution
-        print(f"\n\n--- ITERATION {iteration + 1} SUMMARY ---")
-        for agent_name, output in agent_outputs.items():
-            if output.strip():
-                print(f"{agent_name.upper()} OUTPUT LENGTH: {len(output)} chars")
-                print(f"{agent_name.upper()} OUTPUT PREVIEW: {output[:100]}...")
-        print("--- END SUMMARY ---")
 
-        if "APPROVED:" in iteration_output:
-            final_output = iteration_output.split("APPROVED:")[1].strip()
-            print(f"\n=== APPROVED after {iteration + 1} iterations ===")
-            break
-        elif "MODIFY_QUERY:" in iteration_output:
-            current_query = iteration_output.split("MODIFY_QUERY:")[1].strip()
-            print(f"\n=== Query modified to: '{current_query}' ===")
-        else:
-            print(
-                f"\n=== No clear directive from refiner in iteration {iteration + 1} ==="
-            )
-            break
+            elif "MODIFY_QUERY:" in output_text:
+                current_query = iteration_output.split("MODIFY_QUERY:")[1].strip()
+                print(f"\n=== Query modified to: '{current_query}' ===")
 
-    result = {"best_query": current_query, "output_text": final_output}
+            else:
+                best_output = output_text
+
+
+    result = {"best_query": best_query, "output_text": best_output}
     return result
+
+
+def _format_chunks(chunks: list[tuple[str, str, float]]) -> str:
+    """
+    Format the retrieved chunks into a readable string.
+
+    Args:
+        chunks (list[tuple[str, str, float]]): List of tuples containing chunk text, ID, and score.
+
+    Returns:
+        str: Formatted string of chunks.
+    """
+    formatted_chunks = []
+    for i, (chunk, chunk_id, score) in enumerate(chunks, 1):
+        formatted_chunks.append(f"Chunk {i} (ID: {chunk_id}, Score: {score:.3f}):\n{chunk}\n")
+    return "\n".join(formatted_chunks) if formatted_chunks else "No chunks retrieved"

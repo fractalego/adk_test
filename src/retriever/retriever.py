@@ -6,7 +6,7 @@ from rank_bm25 import BM25Okapi
 
 
 class Retriever:
-    def __init__(self, folder_path: str):
+    def __init__(self, folder_path: str) -> None:
         self.folder_path = Path(folder_path)
         self.chunks: List[str] = []
         self.chunk_ids: List[str] = []
