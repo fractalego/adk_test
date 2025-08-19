@@ -27,21 +27,16 @@ async def main():
         session_id=_session_id,
     )
     part = Part(text=initial_query)
-    content = Content(role='user', parts=[part])
+    content = Content(role="user", parts=[part])
     runner = Runner(
-        agent=agent_openai,
-        app_name=_app_name,
-        session_service=session_service
+        agent=agent_openai, app_name=_app_name, session_service=session_service
     )
     async for event in runner.run_async(
-        user_id=_user_id,
-        session_id=_session_id,
-        new_message=content
+        user_id=_user_id, session_id=_session_id, new_message=content
     ):
-        print(event.content.parts[0].text, end='', flush=True)
+        print(event.content.parts[0].text, end="", flush=True)
         if event.is_final_response():
             print()
-
 
 
 if __name__ == "__main__":
