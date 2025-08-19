@@ -1,9 +1,11 @@
+from typing import Optional
+
 from google.adk import Runner
 from google.adk.sessions import InMemorySessionService
 
 
 class RunnerFactory:
-    def __init__(self, app_name: str, user_id: str, session_id: str, initial_state: dict):
+    def __init__(self, app_name: str, user_id: str, session_id: str, initial_state: Optional[dict] = None):
         self.app_name = app_name
         self.user_id = user_id
         self.session_id = session_id
