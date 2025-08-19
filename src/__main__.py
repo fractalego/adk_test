@@ -5,7 +5,7 @@ from google.adk.agents import LlmAgent, SequentialAgent
 from google.adk.models.lite_llm import LiteLlm
 from google.genai.types import Content, Part
 
-from src.prompts import generation_instructions
+from src.prompts.prompts import generation_instructions
 from src.runner_factory import RunnerFactory
 
 initial_query = "do the summary."
