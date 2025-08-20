@@ -29,25 +29,24 @@ async def main():
         max_iterations=5,
         guidance_criteria=guidance_criteria,
         retriever=retriever,
-        runner_factory=runner_factory,
-        user_id=_user_id,
-        session_id=_session_id,
     )
     
     runner = await runner_factory.get_runner(agent=iterative_agent)
     part = Part(text=initial_query)
     content = Content(role="user", parts=[part])
     
+    result = {"best_query": initial_query, "output_text": ""}
     async for event in runner.run_async(
         user_id=_user_id,
         session_id=_session_id,
         new_message=content,
     ):
-        pass
-
-    best_query = runner.session.state.get("best_query", initial_query)
-    output_text = runner.session.state.get("output_text", "")
-    result = {"best_query": best_query, "output_text": output_text}
+        if hasattr(event.content, 'parts') and event.content.parts:
+            text = event.content.parts[0].text
+            try:
+                result = json.loads(text)
+            except json.JSONDecodeError:
+                pass
 
     print(f"\n\nFinal Result:\n{json.dumps(result, indent=2)}")
 
