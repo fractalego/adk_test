@@ -26,7 +26,7 @@ async def main():
 
     iterative_agent = IterativeRefinerAgent(
         name="iterative_refiner",
-        max_iterations=5,
+        max_iterations=3,
         guidance_criteria=guidance_criteria,
         retriever=retriever,
     )

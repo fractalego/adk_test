@@ -54,8 +54,6 @@ class IterativeRefinerAgent(BaseAgent):
             results = self.retriever.get_chunks(current_query, top_k=8)
             print(f"Retrieved {len(results)} Chunks")
             formatted_chunks = self._format_chunks(results)
-            query_with_chunks = f"{current_query}\n\nRETRIEVED CHUNKS:\n{formatted_chunks}"
-            print(f"DEBUG: Sending to sub-agent:\n{query_with_chunks[:500]}...")
 
             sequential_agent = AgentsFactory.create_agents(
                 iteration=iteration,
@@ -65,7 +63,9 @@ class IterativeRefinerAgent(BaseAgent):
                 modify_tag=_modify_tag,
             )
             
-            part = Part(text=query_with_chunks)
+            sequential_agent.sub_agents[0].set_chunks(formatted_chunks)
+            
+            part = Part(text=current_query)
             content = Content(role="user", parts=[part])
             
             sub_ctx = InvocationContext(

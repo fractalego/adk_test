@@ -4,8 +4,9 @@ from google.adk.agents import LlmAgent
 from google.adk.agents import SequentialAgent
 from google.adk.models.lite_llm import LiteLlm
 
+from src.generation_agent import GenerationAgent
 from src.prompts.prompts import (
-    generation_agent_instructions,
+    generation_agent_instructions_template,
     refiner_agent_instructions,
 )
 
@@ -14,12 +15,12 @@ _model_name = "openai/gpt-4o-mini"
 class AgentsFactory:
     @staticmethod
     def create_agents(
-        iteration: int, guidance_criteria: list[str], original_query: str, accepted_tag: str, modify_tag: str
+        iteration: int, guidance_criteria: list[str], original_query: str, accepted_tag: str, modify_tag: str, chunks: str = ""
     ) -> SequentialAgent:
-        generation_agent = LlmAgent(
+        generation_agent = GenerationAgent(
             model=LiteLlm(model=_model_name, api_key=os.getenv("OPENAI_API_KEY")),
             name="generation_agent",
-            instruction=generation_agent_instructions,
+            instruction=generation_agent_instructions_template,
         )
 
         criteria_text = "\n".join(f"- {criterion}" for criterion in guidance_criteria)
