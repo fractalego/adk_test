@@ -2,7 +2,8 @@ import asyncio
 import os
 import json
 
-from src.iterations import iterate_agents
+from google.genai.types import Part, Content
+from src.iterative_refiner_agent import IterativeRefinerAgent
 from src.prompts.guidance_criteria import guidance_criteria
 from src.retriever import Retriever
 from src.runner_factory import RunnerFactory
@@ -23,8 +24,8 @@ async def main():
         session_id=_session_id,
     )
 
-    result = await iterate_agents(
-        initial_query=initial_query,
+    iterative_agent = IterativeRefinerAgent(
+        name="iterative_refiner",
         max_iterations=5,
         guidance_criteria=guidance_criteria,
         retriever=retriever,
@@ -32,6 +33,21 @@ async def main():
         user_id=_user_id,
         session_id=_session_id,
     )
+    
+    runner = await runner_factory.get_runner(agent=iterative_agent)
+    part = Part(text=initial_query)
+    content = Content(role="user", parts=[part])
+    
+    async for event in runner.run_async(
+        user_id=_user_id,
+        session_id=_session_id,
+        new_message=content,
+    ):
+        pass
+
+    best_query = runner.session.state.get("best_query", initial_query)
+    output_text = runner.session.state.get("output_text", "")
+    result = {"best_query": best_query, "output_text": output_text}
 
     print(f"\n\nFinal Result:\n{json.dumps(result, indent=2)}")
 
