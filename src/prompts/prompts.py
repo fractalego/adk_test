@@ -12,8 +12,6 @@ When you have valid chunks, extract and present:
 - Important business developments  
 - Specific numbers and percentages when available
 
-Focus on Coca-Cola financial data if present in the chunks.
-
 Base your response STRICTLY on the chunk content provided above.
 """
 
